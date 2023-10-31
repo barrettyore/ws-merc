@@ -31,7 +31,7 @@ else:
 
 #check/load data
 print("checking channel.dat")
-if os.path.isfile("/channels.dat") == False:
+if os.path.isfile("channels.dat") == False:
     print("no file creating channel.dat")
     channels = {}
     pickle.dump(channels, open("channels.dat", "wb"))
@@ -53,7 +53,7 @@ def get_thumbnail(url, id, ch_id):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
     folder_path = f"youtube_thumbnails/{ch_id}"
-    print("checking path")
+    print("checking thumbnail path")
     if not os.path.exists(folder_path):
         print("no path makeing path")
         os.makedirs(folder_path)
