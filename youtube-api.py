@@ -21,7 +21,7 @@ youtube = build("youtube", "v3", developerKey=api_key)
 
 #constants
 SHOW_LAST = 3
-DOWNLOADS_PATH = str(Path.home() / "Downloads")
+DOWNLOADS_PATH = str(Path.home() / "Downloadsa")
 if not os.path.exists(DOWNLOADS_PATH):
     DOWNLOADS_PATH = "backup_downloads"
     print("print download folder not found useing backup")
@@ -78,14 +78,38 @@ def get_url(videoID):
 
 #image scraping
 
+global return_videos
+return_videos = []
+global channel_name
+channel_name = ""
 
+def save_channel_data(channel_id, last_uploads, channel_title):
+    try:
+        with open("channels.dat", "rb") as file:
+            current_data = pickle.load(file)
+    except FileNotFoundError:
+        current_data = {}  # Initialize an empty dictionary if the file doesn't exist
 
+    if channel_id not in current_data:
+        current_data[channel_id] = {"videos": {}}
+        current_data[channel_id] = {"channel_info": {}}
+
+    current_data[channel_id]["videos"]["video1"] = last_uploads[0]
+    current_data[channel_id]["videos"]["video2"] = last_uploads[1]
+    current_data[channel_id]["videos"]["video3"] = last_uploads[2]
+    current_data[channel_id]["channel_info"]["channel_name"] = channel_title
+
+    with open("channels.dat", "wb") as file:
+        pickle.dump(current_data, file)
+    return_videos.clear()
+    global channel_name
+    channel_name = ""
 
 def listToString(s):
     str1 = ""
     for ele in s:
         str1 += ele
-    return str1
+    return str1#b
 
 def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download): 
   
@@ -126,6 +150,7 @@ def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download):
             description = item['snippet']['description'] 
             video_id = item["snippet"]["resourceId"]["videoId"]
             thumbnails = item['snippet']['thumbnails'] 
+            channel_title = item["snippet"]["channelTitle"]
             print(x+1, " out of ",SHOW_LAST )
             print("thumbnail urls")
             if 'default' in thumbnails: 
@@ -157,9 +182,12 @@ def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download):
             print(description)
             print(video_id)
             print(get_url(video_id))
+            print(channel_title)
             print("end")
             print("________________________________________________________________________________________________")
             print("\n") 
+            return_videos.append(video_id)
+            channel_name = channel_title
             if auto_download == True:
                 t1 = threading.Thread(target=download_video, args=(get_url(video_id),"blank"))
                 t1.start()
@@ -186,6 +214,11 @@ print(y)
 y[1] = "U"
 z = listToString(y)
 playlist_video_links(z,a,b,False) #allow user to chooose
+save_channel_data(x.channel_id,return_videos,channel_name)
 print("_____________________________________________")
 
 
+with open("channels.dat", "rb") as file:
+            print(pickle.load(file))
+
+            
