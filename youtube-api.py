@@ -10,6 +10,7 @@ import requests
 import os
 import threading
 import pickle
+import os, shutil
 
 
 
@@ -28,8 +29,44 @@ if not os.path.exists(DOWNLOADS_PATH):
     print(DOWNLOADS_PATH)
 else:
     print("downloads folder exists")
+#varibles
+global return_videos_titles
+return_videos = []
+global channel_name
+channel_name = ""
+channel_data = {}
+return_video_titles = []
+
+
 
 #check/load data
+print("checking followed_channels.dat")
+if os.path.isfile("followed_channels.dat") == False:
+    print("no file creating followed_channels.dat")
+    followed_channels = {}
+    pickle.dump(followed_channels, open("followed_channels.dat","wb"))
+print("loading followed_channels.dat")
+try:
+    with open("followed_channels.dat","rb") as file:
+        followed_channels = pickle.load(file)
+except EOFError:
+    print("ERROR FILE EMPTY")
+    print("assuming the worst and deleted all save data in effort to keep syncrazation")
+    try:
+        os.remove("channels.dat")
+    except:
+        print("channels.dat already removed")
+    try:
+        shutil.rmtree("youtube_thumbnails")
+    except:
+        print("thumbnail path arleady removed")
+    followed_channels = {}
+    followed_channels = {
+    "list": [],
+    }
+
+
+
 print("checking channel.dat")
 if os.path.isfile("channels.dat") == False:
     print("no file creating channel.dat")
@@ -37,6 +74,15 @@ if os.path.isfile("channels.dat") == False:
     pickle.dump(channels, open("channels.dat", "wb"))
 print("loading channel.dat")
 channels = pickle.load(open("channels.dat","rb"))
+if os.path.isfile("channels.dat"):
+    with open("channels.dat", "rb") as file:
+        channel_data = pickle.load(file)
+
+print("checking thumbnail path")
+if not os.path.exists("youtube_thumbnails"):
+    print("no path makeing path")
+    os.makedirs("youtube_thumbnails")
+print("thumbnail path exists")
 
 
 
@@ -53,7 +99,7 @@ def get_thumbnail(url, id, ch_id):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content))
     folder_path = f"youtube_thumbnails/{ch_id}"
-    print("checking thumbnail path")
+    print("checking thumbnail sub path")
     if not os.path.exists(folder_path):
         print("no path makeing path")
         os.makedirs(folder_path)
@@ -78,32 +124,53 @@ def get_url(videoID):
 
 #image scraping
 
-global return_videos
-return_videos = []
-global channel_name
-channel_name = ""
 
+# Update the save_channel_data function to accumulate data for different channels.
 def save_channel_data(channel_id, last_uploads, channel_title):
-    try:
-        with open("channels.dat", "rb") as file:
-            current_data = pickle.load(file)
-    except FileNotFoundError:
-        current_data = {}  # Initialize an empty dictionary if the file doesn't exist
+    # Load the existing data from "followed_channels.dat"
+    if os.path.isfile("followed_channels.dat"):
+        try:
+            with open("followed_channels.dat", "rb") as file:
+                followed_channels = pickle.load(file)
+        except EOFError:
+            followed_channels = {}
+    else:
+        # If the file doesn't exist, initialize an empty dictionary
+        followed_channels = {}
 
-    if channel_id not in current_data:
-        current_data[channel_id] = {"videos": {}}
-        current_data[channel_id] = {"channel_info": {}}
+    # Check if the channel_id is not in the "list" key and append it
+    if channel_id not in followed_channels.get("list", []):
+        followed_channels.setdefault("list", []).append(channel_id)
 
-    current_data[channel_id]["videos"]["video1"] = last_uploads[0]
-    current_data[channel_id]["videos"]["video2"] = last_uploads[1]
-    current_data[channel_id]["videos"]["video3"] = last_uploads[2]
-    current_data[channel_id]["channel_info"]["channel_name"] = channel_title
+    # Save the updated data back to "followed_channels.dat"
+    with open("followed_channels.dat", "wb") as file:
+        pickle.dump(followed_channels, file)
+        print("new channel added")
+        print(followed_channels)
+
+
+    if channel_id not in channel_data:
+        channel_data[channel_id] = {"videos": {}, "channel_info": {}}
+
+    for x in range(3):
+        video_info = {
+            "id": last_uploads[x],
+            "title": return_video_titles[x]
+        }
+        channel_data[channel_id]["videos"][f"video{x}"] = video_info
+    
+    channel_data[channel_id]["channel_info"]["channel_name"] = channel_title
 
     with open("channels.dat", "wb") as file:
-        pickle.dump(current_data, file)
+        pickle.dump(channel_data, file)
     return_videos.clear()
+    return_video_titles.clear()
     global channel_name
     channel_name = ""
+
+
+
+
 
 def listToString(s):
     str1 = ""
@@ -187,6 +254,8 @@ def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download):
             print("________________________________________________________________________________________________")
             print("\n") 
             return_videos.append(video_id)
+            return_video_titles.append(title)
+            global channel_name
             channel_name = channel_title
             if auto_download == True:
                 t1 = threading.Thread(target=download_video, args=(get_url(video_id),"blank"))
@@ -198,7 +267,10 @@ def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download):
         if not nextPageToken: 
             break
   
-#
+def delete_old_thumbnails(channel_id):
+    with open("channels.dat", "rb") as file:
+            save_data=(pickle.load(file))
+    print(save_data[channel_id["videos"]])
 
 
 #driver code
@@ -215,10 +287,15 @@ y[1] = "U"
 z = listToString(y)
 playlist_video_links(z,a,b,False) #allow user to chooose
 save_channel_data(x.channel_id,return_videos,channel_name)
+
 print("_____________________________________________")
 
-
+print("driver")
 with open("channels.dat", "rb") as file:
-            print(pickle.load(file))
+            save_data=(pickle.load(file))
+            # save_data = pickle.load(file)
+            # print(save_data[""])
+print(save_data)
 
+# delete_old_thumbnails("UCykjfgzqTHuYIhvUGz1Xezg")
             
