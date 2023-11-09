@@ -179,6 +179,10 @@ def listToString(s):
     return str1#b
 
 def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download): 
+    return_videos.clear()
+    return_video_titles.clear()
+    global channel_name
+    channel_name = ""
   
     nextPageToken = None
       
@@ -255,7 +259,6 @@ def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download):
             print("\n") 
             return_videos.append(video_id)
             return_video_titles.append(title)
-            global channel_name
             channel_name = channel_title
             if auto_download == True:
                 t1 = threading.Thread(target=download_video, args=(get_url(video_id),"blank"))
@@ -269,33 +272,120 @@ def playlist_video_links(playlistId,ChannelId,ChannelUrl,auto_download):
   
 def delete_old_thumbnails(channel_id):
     with open("channels.dat", "rb") as file:
-            save_data=(pickle.load(file))
-    print(save_data[channel_id["videos"]])
+        save_data = pickle.load(file)
+
+    if channel_id in save_data:
+        saved_thumbnails = set([f"{channel_id}/" + video["id"] + ".jpg" for video in save_data[channel_id]["videos"].values()])
+        thumbnail_folder = "youtube_thumbnails"
+
+        for filename in os.listdir(thumbnail_folder):
+            if filename not in saved_thumbnails:
+                file_path = os.path.join(thumbnail_folder, filename)
+                try:
+                    if os.path.isfile(file_path):
+                        os.remove(file_path)
+                        print(f"Deleted: {filename}")
+                except Exception as e:
+                    print(f"Error deleting {filename}: {e}")
+    else:
+        print(f"Channel ID {channel_id} not found in channels.dat")
+
+def get_video_ids_for_channel(channel_id):
+    if channel_id in channel_data:
+        channel_info = channel_data[channel_id]
+        videos = channel_info.get("videos", {})
+
+        video_ids = [videos.get(f"video{x}", {}).get("id") for x in range(3)]
+
+        video_ids = [video_id for video_id in video_ids if video_id is not None]
+
+        return video_ids
+
 
 
 #driver code
-video_url = input("to start following a channel please insert a video link from the channel:>")
 
-x = YouTube(video_url)
-a = str(x.channel_id)
-b = str(x.channel_url)
-print("channel id:>",x.channel_id)
-print("channel url:>",x.channel_url)
-y = list(x.channel_id)
-print(y) 
-y[1] = "U"
-z = listToString(y)
-playlist_video_links(z,a,b,False) #allow user to chooose
-save_channel_data(x.channel_id,return_videos,channel_name)
+while True:
+    debug_action = input("type cc to check channels type ac to add channel type pd to print all data type ex to exit loop and end program:>")
+    if debug_action == "cc":
 
-print("_____________________________________________")
+        if "list" in followed_channels:
+            channel_list = followed_channels["list"]
 
-print("driver")
-with open("channels.dat", "rb") as file:
-            save_data=(pickle.load(file))
-            # save_data = pickle.load(file)
-            # print(save_data[""])
-print(save_data)
+            for channel_id in channel_list:
+                print("Channel ID:", channel_id)
+                if channel_id in channel_data:
+                    channel_info = channel_data[channel_id]
+                    print("Channel Info:", channel_info)
+                    y = list(channel_id)
+                    print(y) 
+                    y[1] = "U"
+                    z = listToString(y)
+                    channel_url = f'https://www.youtube.com/channel/{channel_id}'
+                    playlist_video_links(z,channel_id,channel_url,False) #get download from settings also when implemeted do exclude if and inlcude if here
+                    print("cross checking data")
+                    old_data = get_video_ids_for_channel(channel_id)
+                    for video in range(0,3):
+                        new_video = return_videos[video] 
+                        old_video = old_data[video]
+                        print("new data:>",new_video)
+                        print("old data:>",old_video)
+                        if old_video != new_video:
+                            print("new videos deleteing old thumbnail and saveing data")
+                            save_channel_data(channel_id,return_videos,channel_name)
+                            delete_old_thumbnails(channel_id)
+                            break
+                        else:
+                            print("video not new")
+                            
+                else:
+                    print(f"Channel ID {channel_id} not found in channel_data")
+        else:
+            print("'list' key does not exist in followed_channels")
 
-# delete_old_thumbnails("UCykjfgzqTHuYIhvUGz1Xezg")
-            
+    elif debug_action == "ac":
+
+        video_url = input("to start following a channel please insert a video link from the channel:>")
+
+        x = YouTube(video_url)
+        a = str(x.channel_id)
+        b = str(x.channel_url)
+        print("channel id:>",x.channel_id)
+        print("channel url:>",x.channel_url)
+        y = list(x.channel_id)
+        print(y) 
+        y[1] = "U"
+        z = listToString(y)
+        playlist_video_links(z,a,b,False) #allow user to chooose
+        save_channel_data(x.channel_id,return_videos,channel_name)
+
+        print("_____________________________________________")
+
+        print("driver")
+        with open("channels.dat", "rb") as file:
+                    save_data=(pickle.load(file))
+                    # save_data = pickle.load(file)
+                    # print(save_data[""])
+        print(save_data)
+
+        # delete_old_thumbnails("UCykjfgzqTHuYIhvUGz1Xezg")
+    elif debug_action == "ex":    
+        print("exiting")
+        break
+
+    elif debug_action == "pd":
+        print("channels.dat")
+        print(channels)
+
+        print("followed_channels.dat")
+        print(followed_channels)
+
+        print("thumbnails")
+        thumbnail_folder = "youtube_thumbnails"
+        for root, dirs, files in os.walk(thumbnail_folder):
+            for file in files:
+                file_path = os.path.join(root, file)
+                print(file_path)
+
+    else:
+        print("unsurported action")
