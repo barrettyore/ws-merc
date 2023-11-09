@@ -125,7 +125,37 @@ def get_url(videoID):
 #image scraping
 
 
-# Update the save_channel_data function to accumulate data for different channels.
+
+
+
+
+
+def save_channel_settings(channel_id, settings):
+    # Load existing settings from channel_settings.dat
+    if os.path.isfile("channel_settings.dat"):
+        try:
+            with open("channel_settings.dat", "rb") as file:
+                channel_settings = pickle.load(file)
+        except EOFError:
+            channel_settings = {}
+    else:
+        # If the file doesn't exist, initialize an empty dictionary
+        channel_settings = {}
+
+    # Save or update settings for the specific channel_id
+    channel_settings[channel_id] = settings
+
+    # Save the updated settings back to channel_settings.dat
+    with open("channel_settings.dat", "wb") as file:
+        pickle.dump(channel_settings, file)
+
+
+
+
+
+
+
+
 def save_channel_data(channel_id, last_uploads, channel_title):
     # Load the existing data from "followed_channels.dat"
     if os.path.isfile("followed_channels.dat"):
@@ -161,12 +191,15 @@ def save_channel_data(channel_id, last_uploads, channel_title):
     
     channel_data[channel_id]["channel_info"]["channel_name"] = channel_title
 
+
     with open("channels.dat", "wb") as file:
         pickle.dump(channel_data, file)
     return_videos.clear()
     return_video_titles.clear()
     global channel_name
     channel_name = ""
+
+    
 
 
 
@@ -301,6 +334,20 @@ def get_video_ids_for_channel(channel_id):
 
         return video_ids
 
+# def ask_settings(): FINISH THIS ONCE UI IS BUILT
+#     print("setting excludes leave empty for none NOTICE USEING THIS WILL BLOCK YOU FROM USEING INCLUDE ONLY FEATURE")
+    # excludes = []
+    # while True:
+    #     reply = input("add exclude or type !ext to leave or !help for more info")
+    #     if reply == "!help":
+    #         print("if the channel you want to follow has a series that you dont want to be notified for grap its name from the channel and add it here and it wont pop up in checks")
+    #     elif reply == "!ext":
+    #         break
+    #     else:
+    #         excludes.append(reply)
+    # if len(excludes) == 0:
+    #     print("setting include leave empty for none")
+
 
 
 #driver code
@@ -340,6 +387,7 @@ while True:
                             
                 else:
                     print(f"Channel ID {channel_id} not found in channel_data")
+                    print
         else:
             print("'list' key does not exist in followed_channels")
 
@@ -368,7 +416,16 @@ while True:
                     # print(save_data[""])
         print(save_data)
 
-        # delete_old_thumbnails("UCykjfgzqTHuYIhvUGz1Xezg")
+        settings = {
+            "auto_download": True,
+            "exclude_keywords": ["keyword1", "keyword2"],
+            "include_keywords": ["keyword3"],
+            "show_shorts": True,
+}
+        # save_channel_settings(x.channel_id) FINISH SETTINGS ONCE UI IS BUILT
+
+
+        
     elif debug_action == "ex":    
         print("exiting")
         break
